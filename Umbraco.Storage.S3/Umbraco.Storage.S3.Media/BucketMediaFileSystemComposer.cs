@@ -44,6 +44,7 @@ namespace Umbraco.Storage.S3.Media
             var bucketName = ConfigurationManager.AppSettings[$"{AppSettingsKey}:BucketName"];
             var bucketHostName = ConfigurationManager.AppSettings[$"{AppSettingsKey}:BucketHostname"];
             var bucketPrefix = ConfigurationManager.AppSettings[$"{AppSettingsKey}:MediaPrefix"];
+            var mediaPrefix = ConfigurationManager.AppSettings[$"{AppSettingsKey}:MediaFolderName"];
             var region = ConfigurationManager.AppSettings[$"{AppSettingsKey}:Region"];
             bool.TryParse(ConfigurationManager.AppSettings[$"{AppSettingsKey}:DisableVirtualPathProvider"], out var disableVirtualPathProvider);
 
@@ -67,7 +68,8 @@ namespace Umbraco.Storage.S3.Media
                 Region = region,
                 CannedACL = new S3CannedACL("public-read"),
                 ServerSideEncryptionMethod = "",
-                DisableVirtualPathProvider = disableVirtualPathProvider
+                DisableVirtualPathProvider = disableVirtualPathProvider,
+                MediaPrefix = mediaPrefix
             };
         }
     }

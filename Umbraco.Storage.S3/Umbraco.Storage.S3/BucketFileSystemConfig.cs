@@ -10,6 +10,8 @@ namespace Umbraco.Storage.S3
 
         public string BucketPrefix { get; set; }
 
+        public string MediaPrefix { get; set; }
+
         public string Region { get; set; }
 
         public S3CannedACL CannedACL { get; set; }

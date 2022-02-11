@@ -70,32 +70,31 @@ namespace Umbraco.Storage.S3
             }
         }
 
-        protected virtual string ResolveBucketPath(string path, bool isDir = false)
+
+        protected virtual string ResolveMediaPath(string path, bool isDir = false)
         {
             if (string.IsNullOrEmpty(path))
-                return Config.BucketPrefix;
+                return Config.MediaPrefix;
 
             //Remove Bucket Hostname
-            if (!path.Equals("/") && path.StartsWith(Config.BucketHostName, StringComparison.InvariantCultureIgnoreCase))
-                path = path.Substring(Config.BucketHostName.Length);
+            if (!path.Equals("/") && path.StartsWith(Config.MediaPrefix, StringComparison.InvariantCultureIgnoreCase))
+                path = path.Substring(Config.MediaPrefix.Length);
 
-            // Equalise delimiters
-            path = path.Replace("/", Delimiter).Replace("\\", Delimiter);
+            path = path.Replace("\\", Delimiter);
+            if (path == Delimiter)
+                return "";
 
             if (path.StartsWith(Delimiter))
                 path = path.Substring(1);
 
             //Remove Key Prefix If Duplicate
-            if (path.StartsWith(Config.BucketPrefix, StringComparison.InvariantCultureIgnoreCase))
-                path = path.Substring(Config.BucketPrefix.Length);
+            if (path.StartsWith(Config.MediaPrefix, StringComparison.InvariantCultureIgnoreCase))
+                path = path.Substring(Config.MediaPrefix.Length);
 
-            if (isDir && !path.EndsWith(Delimiter))
-                path = string.Concat(path, Delimiter);
+            if (isDir && (!path.EndsWith(Delimiter)))
+                path = string.Concat(Delimiter, path);
 
-            if (path.StartsWith(Delimiter))
-                path = path.Substring(1);
-
-            return string.Concat(Config.BucketPrefix, "/", path);
+            return path;
         }
 
         protected virtual string RemovePrefix(string key)
@@ -111,7 +110,7 @@ namespace Umbraco.Storage.S3
             if (string.IsNullOrEmpty(path))
                 path = "/";
 
-            path = ResolveBucketPath(path, true);
+            path = string.Concat(Config.BucketPrefix, ResolveMediaPath(path, true));
             var request = new ListObjectsRequest
             {
                 BucketName = Config.BucketName,
@@ -137,7 +136,7 @@ namespace Umbraco.Storage.S3
             var listRequest = new ListObjectsRequest
             {
                 BucketName = Config.BucketName,
-                Prefix = ResolveBucketPath(path, true)
+                Prefix = string.Concat(Config.BucketPrefix, ResolveMediaPath(path, true))
             };
 
             var listResponse = ExecuteWithContinuation(listRequest);
@@ -163,7 +162,7 @@ namespace Umbraco.Storage.S3
             var request = new ListObjectsRequest
             {
                 BucketName = Config.BucketName,
-                Prefix = ResolveBucketPath(path, true),
+                Prefix = string.Concat(Config.BucketPrefix, ResolveMediaPath(path, true)),
                 MaxKeys = 1
             };
 
@@ -184,7 +183,7 @@ namespace Umbraco.Storage.S3
                 var request = new PutObjectRequest
                 {
                     BucketName = Config.BucketName,
-                    Key = ResolveBucketPath(path),
+                    Key = string.Concat(Config.BucketPrefix, ResolveMediaPath(path, true)),
                     CannedACL = Config.CannedACL,
                     ContentType = MimeTypeResolver.Resolve(path),
                     InputStream = memoryStream,
@@ -208,7 +207,7 @@ namespace Umbraco.Storage.S3
 
         public virtual IEnumerable<string> GetFiles(string path, string filter)
         {
-            path = ResolveBucketPath(path, true);
+            path = string.Concat(Config.BucketPrefix, ResolveMediaPath(path, true));
 
             string filename = Path.GetFileNameWithoutExtension(filter);
             if (filename.EndsWith("*"))
@@ -246,7 +245,7 @@ namespace Umbraco.Storage.S3
             var request = new GetObjectRequest
             {
                 BucketName = Config.BucketName,
-                Key = ResolveBucketPath(path)
+                Key = string.Concat(Config.BucketPrefix, ResolveMediaPath(path, true))
             };
 
             MemoryStream stream;
@@ -270,7 +269,7 @@ namespace Umbraco.Storage.S3
             var request = new DeleteObjectRequest
             {
                 BucketName = Config.BucketName,
-                Key = ResolveBucketPath(path)
+                Key = string.Concat(Config.BucketPrefix, ResolveMediaPath(path, true))
             };
             Execute(client => client.DeleteObject(request));
         }
@@ -283,7 +282,7 @@ namespace Umbraco.Storage.S3
             var request = new GetObjectMetadataRequest
             {
                 BucketName = Config.BucketName,
-                Key = ResolveBucketPath(path)
+                Key = string.Concat(Config.BucketPrefix, ResolveMediaPath(path, true))
             };
 
             try
@@ -323,9 +322,9 @@ namespace Umbraco.Storage.S3
             }
 
             //Strip Bucket Prefix
-            if (fullPathOrUrl.StartsWith(Config.BucketPrefix, StringComparison.InvariantCultureIgnoreCase))
+            if (fullPathOrUrl.StartsWith(Config.MediaPrefix, StringComparison.InvariantCultureIgnoreCase))
             {
-                fullPathOrUrl = fullPathOrUrl.Substring(Config.BucketPrefix.Length);
+                fullPathOrUrl = fullPathOrUrl.Substring(Config.MediaPrefix.Length);
                 fullPathOrUrl = fullPathOrUrl.TrimStart(Delimiter.ToCharArray());
             }
 
@@ -351,7 +350,7 @@ namespace Umbraco.Storage.S3
                 hostName = "";
             }
 
-            return string.Concat(hostName, "/", ResolveBucketPath(path));
+            return string.Concat(hostName, "/", Config.MediaPrefix, ResolveMediaPath(path, true));
         }
 
         public virtual DateTimeOffset GetLastModified(string path)
@@ -359,7 +358,7 @@ namespace Umbraco.Storage.S3
             var request = new GetObjectMetadataRequest
             {
                 BucketName = Config.BucketName,
-                Key = ResolveBucketPath(path)
+                Key = string.Concat(Config.BucketPrefix, ResolveMediaPath(path, true))
             };
 
             var response = Execute(client => client.GetObjectMetadata(request));
@@ -378,7 +377,7 @@ namespace Umbraco.Storage.S3
             var request = new GetObjectMetadataRequest
             {
                 BucketName = Config.BucketName,
-                Key = ResolveBucketPath(path)
+                Key = string.Concat(Config.BucketPrefix, ResolveMediaPath(path, true))
             };
 
             var response = Execute(client => client.GetObjectMetadata(request));
